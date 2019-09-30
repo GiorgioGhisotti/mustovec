@@ -17,6 +17,11 @@ for json_file in os.listdir():
                 "",
                 lyrics["lyrics"]
             )
+            lyrics["lyrics"] = re.sub(
+                r"[,\(\)-]",
+                "",
+                lyrics["lyrics"]
+            )
             lyrics_new = {
                 "artist": lyrics["artist"],
                 "title": lyrics["title"],
