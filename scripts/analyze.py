@@ -1,24 +1,19 @@
 #!/bin/python3
 
-import gensim
 from gensim import corpora
 from gensim.models import Word2Vec
-from gensim.models.word2vec import Text8Corpus
-from gensim.models.phrases import Phrases, Phraser
 import argparse
 import json
 from collections import defaultdict
 import logging
-from pprint import pprint
 
 
-def getCorpus(data_path):
+def getCorpus(artist, data):
     corpus = []
-    with open(data_path, "r") as df:
-        data = json.load(df)
-        for song in data:
+    for song in data:
+        if song["artist"] == artist["name"]:
             corpus.append(song["lyrics"])
-    stoplist = set("for a of the and to in if ooh".split())
+    stoplist = set("for a of the and to in if oh oh- ooh ooh-".split())
     texts = [
         [word for word in lyric.lower().split() if word not in stoplist]
         for lyric in corpus
@@ -34,23 +29,22 @@ def getCorpus(data_path):
     return texts
 
 
-def getDictionary(texts):
-    dictionary = corpora.Dictionary(texts)
-    corpus = [dictionary.doc2bow(text) for text in texts]
-    lsi = gensim.models.lsimodel.LsiModel(
-        corpus=corpus,
-        id2word=dictionary,
-        num_topics=100
-    )
-    lsi.print_topics(10)
-    lda = gensim.models.ldamodel.LdaModel(
-        corpus=corpus,
-        id2word=dictionary,
-        num_topics=100,
-        update_every=1,
-        passes=1
-    )
-    lda.print_topics(10)
+def getTexts(num_artists, artists_file, data_file):
+    artists = []
+    data = []
+    texts = []
+    with open(artists_file, "r") as af, open(data_file, "r") as df:
+        artists = json.load(af)
+        data = json.load(df)
+    for artist in artists[:num_artists]:
+        corpus = getCorpus(artist, data)
+        texts.append(
+            {
+                "artist": artist["name"],
+                "texts": corpus,
+                "dictionary": corpora.Dictionary(corpus)
+            }
+        )
 
 
 def main():
@@ -59,15 +53,39 @@ def main():
         level=logging.INFO
     )
     parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--model", help="Model path")
-    parser.add_argument("-d", "--data", help="Data path")
+    parser.add_argument("-m", "--model", help="Model file")
+    parser.add_argument("-a", "--artists", help="Artists file")
+    parser.add_argument("-n", "--num", help="Number of top artists to consider")
+    parser.add_argument("-d", "--data", help="Data file")
+    parser.add_argument("-c", "--config", help="Config file")
     args = parser.parse_args()
 
-    model_path = args.model if args.model else "en.model"
-    data_path = args.data if args.data else "data.json"
-    
-    texts = getCorpus(data_path)
-    getDictionary(texts)
+    config = []
+    model_file = "./en.model"
+    data_file = "./data/data.json"
+    artists_file = "./data/artists.json"
+    num_artists = 15
+    config_file = args.config if args.config else "./config.json"
+    try:
+        with open(config_file, "r") as cf:
+            config = json.load(cf)
+        model_file = args.model if args.model else config["model_file"]
+        data_file = args.data if args.data else config["data_file"]
+        artists_file = args.artists if args.artists else config["artists_file"]
+        num_artists = args.num if args.num else config["num_artists"]
+    except IOError:
+        print(
+            "Warning: Could not read %s."
+            % (config_file)
+        )
+
+    texts = getTexts(
+        num_artists=num_artists,
+        artists_file=artists_file,
+        data_file=data_file
+    )
+    # Load keyed wikipedia vector model
+    # model = Word2Vec.load(model_file).wv
 
 
 if __name__ == "__main__":
