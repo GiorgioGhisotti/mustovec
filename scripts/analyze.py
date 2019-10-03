@@ -55,7 +55,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--model", help="Model file")
     parser.add_argument("-a", "--artists", help="Artists file")
-    parser.add_argument("-n", "--num", help="Number of top artists to consider")
+    parser.add_argument("-n", "--num", help="Number of artists to consider")
     parser.add_argument("-d", "--data", help="Data file")
     parser.add_argument("-c", "--config", help="Config file")
     args = parser.parse_args()
@@ -85,7 +85,8 @@ def main():
         data_file=data_file
     )
     # Load keyed wikipedia vector model
-    # model = Word2Vec.load(model_file).wv
+    model = Word2Vec.load(model_file).wv
+    print(texts)
 
 
 if __name__ == "__main__":

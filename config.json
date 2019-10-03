@@ -1,0 +1,6 @@
+{
+  "num_artists": 15,
+  "data_file": "data/data.json",
+  "model_file": "model/en.model",
+  "artists_file": "data/artists.json"
+}
