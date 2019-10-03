@@ -13,7 +13,7 @@ def getCorpus(artist, data):
     for song in data:
         if song["artist"] == artist["name"]:
             corpus.append(song["lyrics"])
-    stoplist = set("for a of the and to in if oh oh- ooh ooh-".split())
+    stoplist = set("for a of the and to in if oh oh- ooh ooh- - -- \_ _ . ? / ( )".split())
     texts = [
         [word for word in lyric.lower().split() if word not in stoplist]
         for lyric in corpus
@@ -45,6 +45,7 @@ def getTexts(num_artists, artists_file, data_file):
                 "dictionary": corpora.Dictionary(corpus)
             }
         )
+    return texts
 
 
 def main():
@@ -85,7 +86,7 @@ def main():
         data_file=data_file
     )
     # Load keyed wikipedia vector model
-    model = Word2Vec.load(model_file).wv
+    # model = Word2Vec.load(model_file).wv
     print(texts)
 
 
