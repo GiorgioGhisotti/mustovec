@@ -100,8 +100,8 @@ def main():
             ) for corpus in text["songs"]
         ] for text in texts if text["artist"] == "Drake"
     ]
-    a = model.most_similar(means[0])
-    b = model.most_similar(means[1])
+    a = model.most_similar(means[0], topn=1)
+    b = model.most_similar(means[1], topn=1)
     print(model.distance(a, b))
 
 
