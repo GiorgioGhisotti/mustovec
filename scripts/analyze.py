@@ -107,7 +107,6 @@ def main():
             ] for text in texts if text["artist"].lower() == "drake"
         )
     ]
-    print("means: %d, %d" % (len(means), len(means[0])))
     a = model.most_similar(means[0][0], topn=1)
     b = model.most_similar(means[0][1], topn=1)
     print(model.distance(a, b))
