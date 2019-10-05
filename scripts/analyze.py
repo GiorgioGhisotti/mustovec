@@ -97,7 +97,7 @@ def main():
     print(type(model["hello"]))
     means = [
         [
-            np.vector(
+            np.ndarray(
                 getGeometricCentre(
                     model=model, text=corpus["lyrics"]
                 )
