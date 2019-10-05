@@ -1,6 +1,7 @@
 #!/bin/python3
 
 from gensim import corpora
+import np
 from gensim.models import Word2Vec
 from gensim.models import KeyedVectors
 import argparse
@@ -28,7 +29,7 @@ def getGeometricCentre(model: KeyedVectors, text):
     vectors = []
     for word in text:
         vectors.append(model.get_vector(word))
-    return 0
+    return np.mean(model[vectors], axis=0)
 
 
 def getTexts(num_artists, artists_file, data_file):
@@ -92,8 +93,7 @@ def main():
     )
     # Load keyed wikipedia vector model
     model = Word2Vec.load(model_file).wv
-    print(model.get_vector("hello"))
-    getGeometricCentre(model=model, text="hello")
+    print(getGeometricCentre(model=model, text="hello"))
 
 
 if __name__ == "__main__":
