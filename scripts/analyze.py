@@ -94,18 +94,19 @@ def main():
     # Load keyed wikipedia vector model
     model = Word2Vec.load(model_file).wv
     print(
-        list([corpus["lyrics"] for corpus in text["songs"]] for text in texts)
+        list([corpus["lyrics"] for corpus in text["songs"]] for text in texts
+             if text["artist"].lower() == "drake")
     )
     means = [
         [
             getGeometricCentre(
                 model=model, text=corpus["lyrics"]
             ) for corpus in text["songs"]
-        ] for text in texts if text["artist"] == "Drake"
+        ] for text in texts if text["artist"].lower() == "drake"
     ]
     print("means: %d, %d" % (len(means), len(means[0])))
-    a = model.most_similar(means[0][0], topn=1)
-    b = model.most_similar(means[0][1], topn=1)
+    a = model.most_similar(means[0], topn=1)
+    b = model.most_similar(means[1], topn=1)
     print(model.distance(a, b))
 
 
