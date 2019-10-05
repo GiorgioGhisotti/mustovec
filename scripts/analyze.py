@@ -28,7 +28,6 @@ def getGeometricCentre(model: KeyedVectors, text):
     vectors = []
     for word in text:
         vectors.append(model.get_vector(word))
-    print(vectors)
     return 0
 
 
@@ -93,6 +92,7 @@ def main():
     )
     # Load keyed wikipedia vector model
     model = Word2Vec.load(model_file).wv
+    print(model.get_vector("hello"))
     getGeometricCentre(model=model, text="hello")
 
 
