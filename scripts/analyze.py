@@ -93,6 +93,7 @@ def main():
     )
     # Load keyed wikipedia vector model
     model = Word2Vec.load(model_file).wv
+    print([corpus["lyrics"] for corpus in text["songs"]] for text in texts)
     means = [
         [
             getGeometricCentre(
