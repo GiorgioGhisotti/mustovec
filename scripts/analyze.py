@@ -18,8 +18,10 @@ def getCorpus(artist, data):
         if song["artist"] == artist["name"]:
             corpus.append(
                 {
-                    song["title"],
-                    re.sub("\.|\-|\(|\)|\–|\!|\?|\,", " ", song["lyrics"])
+                    "title": song["title"],
+                    "lyrics": re.sub(
+                        "\.|\-|\(|\)|\–|\!|\?|\,", " ", song["lyrics"]
+                    )
                 }
             )
     return corpus
@@ -91,7 +93,12 @@ def main():
     )
     # Load keyed wikipedia vector model
     model = Word2Vec.load(model_file).wv
-    print(getGeometricCentre(model=model, text="hello"))
+    means = [
+        getGeometricCentre(
+            model=model, text=text["songs"]["lyrics"]
+        ) for text in texts if text["artist"] == "Drake"
+    ]
+    print(model.most_similar(means[0], topn=1))
 
 
 if __name__ == "__main__":
