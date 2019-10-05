@@ -15,7 +15,7 @@ import re
 def getCorpus(artist, data):
     corpus = []
     for song in data:
-        if song["artist"] == artist["name"]:
+        if song["artist"].lower() == artist["name"].lower():
             corpus.append(
                 {
                     "title": song["title"],
@@ -24,6 +24,7 @@ def getCorpus(artist, data):
                     )
                 }
             )
+            print(artist["name"])
     return corpus
 
 
