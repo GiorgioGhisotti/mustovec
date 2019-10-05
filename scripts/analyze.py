@@ -94,6 +94,7 @@ def main():
     )
     # Load keyed wikipedia vector model
     model = Word2Vec.load(model_file).wv
+    print(type(model["hello"]))
     means = [
         [
             np.vector(
