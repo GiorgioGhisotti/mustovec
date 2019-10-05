@@ -99,11 +99,13 @@ def main():
              if text["artist"].lower() == "drake")
     )
     means = [
-        [
-            getGeometricCentre(
-                model=model, text=corpus["lyrics"]
-            ) for corpus in text["songs"]
-        ] for text in texts if text["artist"].lower() == "drake"
+        np.array(
+            [
+                getGeometricCentre(
+                    model=model, text=corpus["lyrics"]
+                ) for corpus in text["songs"]
+            ] for text in texts if text["artist"].lower() == "drake"
+        )
     ]
     print("means: %d, %d" % (len(means), len(means[0])))
     a = model.most_similar(means[0][0], topn=1)
