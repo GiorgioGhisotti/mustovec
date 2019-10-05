@@ -96,7 +96,7 @@ def main():
     model = Word2Vec.load(model_file).wv
     means = [
         [
-            KeyedVectors(
+            np.vector(
                 getGeometricCentre(
                     model=model, text=corpus["lyrics"]
                 )
