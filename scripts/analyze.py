@@ -94,9 +94,11 @@ def main():
     # Load keyed wikipedia vector model
     model = Word2Vec.load(model_file).wv
     means = [
-        getGeometricCentre(
-            model=model, text=text["songs"]["lyrics"]
-        ) for text in texts if text["artist"] == "Drake"
+        [
+            getGeometricCentre(
+                model=model, text=corpus["lyrics"]
+            ) for corpus in text["songs"]
+        ] for text in texts if text["artist"] == "Drake"
     ]
     print(model.most_similar(means[0], topn=1))
 
