@@ -92,9 +92,7 @@ def main():
         data_file=data_file
     )
     # Load keyed wikipedia vector model
-    model = None
-    with Word2Vec.load(model_file) as m:
-        model = m.wv
+    model = Word2Vec.load(model_file).wv
     means = [
         [
             getGeometricCentre(
