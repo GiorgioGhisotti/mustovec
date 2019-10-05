@@ -2,31 +2,34 @@
 
 from gensim import corpora
 from gensim.models import Word2Vec
+from gensim.models import KeyedVectors
 import argparse
 import json
 from collections import defaultdict
 import logging
+import math
+import re
 
 
 def getCorpus(artist, data):
     corpus = []
     for song in data:
         if song["artist"] == artist["name"]:
-            corpus.append(song["lyrics"])
-    stoplist = set("for a of the and to in if oh oh- ooh ooh- - -- \_ _ . ? / ( )".split())
-    texts = [
-        [word for word in lyric.lower().split() if word not in stoplist]
-        for lyric in corpus
-    ]
-    frequency = defaultdict(int)
-    for text in texts:
-        for token in text:
-            frequency[token] += 1
-    texts = [
-        [token for token in text if frequency[token] > 1]
-        for text in texts
-    ]
-    return texts
+            corpus.append(
+                {
+                    song["title"],
+                    re.sub("\.|\-|\(|\)|\–|\!|\?|\,", " ", song["lyrics"])
+                }
+            )
+    return corpus
+
+
+def getGeometricCentre(model: KeyedVectors, text):
+    vectors = []
+    for word in text:
+        vectors.append(model.get_vector(word))
+    print(vectors)
+    return 0
 
 
 def getTexts(num_artists, artists_file, data_file):
@@ -41,11 +44,14 @@ def getTexts(num_artists, artists_file, data_file):
         texts.append(
             {
                 "artist": artist["name"],
-                "texts": corpus,
-                "dictionary": corpora.Dictionary(corpus)
+                "songs": corpus,
             }
         )
     return texts
+
+
+def radiusOfGyration(coordinates, center_of_mass, visited_locations, visits):
+    return math.sqrt(sum([ri - center_of_mass for ri in visited_locations], 0))
 
 
 def main():
@@ -86,8 +92,8 @@ def main():
         data_file=data_file
     )
     # Load keyed wikipedia vector model
-    # model = Word2Vec.load(model_file).wv
-    print(texts)
+    model = Word2Vec.load(model_file).wv
+    getGeometricCentre(model=model, text="hello")
 
 
 if __name__ == "__main__":
