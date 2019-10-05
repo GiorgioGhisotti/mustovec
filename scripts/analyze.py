@@ -24,7 +24,7 @@ def getCorpus(artist, data):
                     )
                 }
             )
-            print(artist["name"])
+    print(len(corpus))
     return corpus
 
 
