@@ -33,6 +33,7 @@ def getGeometricCentre(model: KeyedVectors, text):
     out = []
     n = len(doc[0])
     print(n)
+    print(type(doc[0]))
     for i in range(n - 1):
         sum = 0
         for d in doc:
