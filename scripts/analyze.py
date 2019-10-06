@@ -32,6 +32,7 @@ def getGeometricCentre(model: KeyedVectors, text):
     doc = [model[word] for word in text if word in model.vocab]
     out = []
     n = len(doc[0])
+    print(n)
     for i in range(n - 1):
         sum = 0
         for d in doc:
