@@ -27,7 +27,7 @@ def getCorpus(artist, data):
 
 
 def getGeometricCentre(model: KeyedVectors, text):
-    doc = [model[word] for word in text if word in model.vocab]
+    doc = [word for word in text if word in model.vocab]
     return np.mean(model[doc], axis=0)
 
 
