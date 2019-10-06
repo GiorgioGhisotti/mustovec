@@ -101,6 +101,10 @@ def main():
     ]
     a = model.similar_by_vector(means[0][0], topn=1)
     b = model.similar_by_vector(means[0][1], topn=1)
+    print(a)
+    print(a[0])
+    print(a[0][0])
+    print(a[0][1])
     print(model.distance(model[a[0][0]], model[b[0][0]]))
 
 
