@@ -30,7 +30,7 @@ def getCorpus(artist, data):
 
 def getGeometricCentre(model: KeyedVectors, text):
     doc = [model[word] for word in text if word in model.vocab]
-    return np.mean(doc, axis=0)
+    return np.ndarray(np.mean(doc, axis=0, keepdims=True))
 
 
 def getTexts(num_artists, artists_file, data_file):
@@ -97,11 +97,9 @@ def main():
     print(type(model["hello"]))
     means = [
         [
-            np.ndarray(
-                getGeometricCentre(
-                    model=model, text=corpus["lyrics"]
-                )
-            ) for corpus in text["songs"]
+            getGeometricCentre(
+                model=model, text=corpus["lyrics"]
+            )for corpus in text["songs"]
         ] for text in texts if text["artist"].lower() == "drake"
     ]
     a = model.most_similar(means[0][0], topn=1)
