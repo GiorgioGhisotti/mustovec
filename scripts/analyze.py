@@ -1,12 +1,10 @@
 #!/bin/python3
 
-from gensim import corpora
 import np
 from gensim.models import Word2Vec
 from gensim.models import KeyedVectors
 import argparse
 import json
-from collections import defaultdict
 import logging
 import math
 import re
@@ -30,16 +28,7 @@ def getCorpus(artist, data):
 
 def getGeometricCentre(model: KeyedVectors, text):
     doc = [model[word] for word in text if word in model.vocab]
-    n = len(doc[0])
-    return model["hello"]
-    out = model["hello"].copy()
-    out.flags.writeable = True
-    for i in range(n):
-        sum = 0
-        for d in doc:
-            sum += d[i]
-        out[i] = sum/n
-    return out
+    return np.mean(model[doc], axis=0)
 
 
 def getTexts(num_artists, artists_file, data_file):
@@ -103,7 +92,6 @@ def main():
     )
     # Load keyed wikipedia vector model
     model = Word2Vec.load(model_file).wv
-    print(type(model["hello"]))
     means = [
         [
             getGeometricCentre(
@@ -111,9 +99,8 @@ def main():
             )for corpus in text["songs"]
         ] for text in texts if text["artist"].lower() == "drake"
     ]
-    print(type(means[0][0]))
-    a = model.most_similar(means[0][0], topn=1)
-    b = model.most_similar(means[0][1], topn=1)
+    a = model.similar_by_vector(means[0][0], topn=1)
+    b = model.similar_by_vector(means[0][1], topn=1)
     print(model.distance(a, b))
 
 
