@@ -35,6 +35,7 @@ def getGeometricCentre(model: KeyedVectors, text):
     print(len(model["hello"]))
     print(model["hello"].shape)
     print(type(doc[0]))
+    out = np.ndarray(shape=model["hello"].shape)
     for i in range(n):
         sum = 0
         for d in doc:
