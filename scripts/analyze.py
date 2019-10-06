@@ -99,8 +99,8 @@ def main():
             )for corpus in text["songs"]
         ] for text in texts if text["artist"].lower() == "drake"
     ]
-    a = model.similar_by_vector(means[0][0], topn=1)
-    b = model.similar_by_vector(means[0][1], topn=1)
+    a = model.index2word(model.similar_by_vector(means[0][0], topn=1))
+    b = model.index2Word(model.similar_by_vector(means[0][1], topn=1))
     print(model.distance(a, b))
 
 
