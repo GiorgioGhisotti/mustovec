@@ -99,9 +99,10 @@ def main():
             )for corpus in text["songs"]
         ] for text in texts if text["artist"].lower() == "drake"
     ]
-    a = model.index2word(model.similar_by_vector(means[0][0], topn=1)[0])
-    b = model.index2Word(model.similar_by_vector(means[0][1], topn=1)[0])
-    print(model.distance(a, b))
+    a = model.similar_by_vector(means[0][0], topn=1)
+    b = model.similar_by_vector(means[0][1], topn=1)
+    print(type(a))
+    # print(model.distance(a, b))
 
 
 if __name__ == "__main__":
