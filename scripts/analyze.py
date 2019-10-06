@@ -40,7 +40,7 @@ def getGeometricCentre(model: KeyedVectors, text):
         sum = 0
         for d in doc:
             sum += d[i]
-        out.append(sum/n)
+        out[0, i] = sum/n
     return out
 
 
