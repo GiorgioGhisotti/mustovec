@@ -31,7 +31,8 @@ def getCorpus(artist, data):
 def getGeometricCentre(model: KeyedVectors, text):
     doc = [model[word] for word in text if word in model.vocab]
     n = len(doc[0])
-    out = model["hello"]
+    out = model["hello"].copy()
+    out.flags.writeable = True
     for i in range(n):
         sum = 0
         for d in doc:
