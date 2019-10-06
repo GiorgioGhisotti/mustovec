@@ -30,7 +30,7 @@ def getCorpus(artist, data):
 
 def getGeometricCentre(model: KeyedVectors, text):
     doc = [model[word] for word in text if word in model.vocab]
-    out = []
+    out = np.ndarray()
     n = len(doc[0])
     print(n)
     print(len(model["hello"]))
@@ -40,7 +40,7 @@ def getGeometricCentre(model: KeyedVectors, text):
         for d in doc:
             sum += d[i]
         out.append(sum/n)
-    return np.ndarray(out)
+    return out
 
 
 def getTexts(num_artists, artists_file, data_file):
