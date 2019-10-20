@@ -65,9 +65,11 @@ def main():
     parser.add_argument("-n", "--num", help="Number of artists to consider")
     parser.add_argument("-d", "--data", help="Data file")
     parser.add_argument("-c", "--config", help="Config file")
+    parser.add_argument("-o", "--out", help="Output file")
     args = parser.parse_args()
 
     config = []
+    rogs_file = "./data/rogs.json"
     model_file = "./en.model"
     data_file = "./data/data.json"
     artists_file = "./data/artists.json"
@@ -76,6 +78,7 @@ def main():
     try:
         with open(config_file, "r") as cf:
             config = json.load(cf)
+        rogs_file = args.out if args.out else config["rogs_file"]
         model_file = args.model if args.model else config["model_file"]
         data_file = args.data if args.data else config["data_file"]
         artists_file = args.artists if args.artists else config["artists_file"]
@@ -113,7 +116,8 @@ def main():
             )
         ) for i in range(num_artists)
     ]
-    print(rogs)
+    with open(rogs_file, "w") as of:
+        json.dump(rogs, of)
 
 
 if __name__ == "__main__":
