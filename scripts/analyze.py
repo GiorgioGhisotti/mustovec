@@ -18,11 +18,10 @@ def getCorpus(artist, data):
                 {
                     "title": song["title"],
                     "lyrics": re.sub(
-                        "\.|\-|\(|\)|\–|\!|\?|\,", " ", song["lyrics"]
+                        r"\.|\-|\(|\)|\–|\!|\?|\,", " ", song["lyrics"]
                     )
                 }
             )
-    print(len(corpus))
     return corpus
 
 
@@ -46,11 +45,13 @@ def getTexts(num_artists, artists_file, data_file):
                 "songs": corpus,
             }
         )
-    return texts
+    return (artists[:num_artists], texts)
 
 
-def radiusOfGyration(coordinates, center_of_mass, visited_locations, visits):
-    return math.sqrt(sum([ri - center_of_mass for ri in visited_locations], 0))
+def radiusOfGyration(center_of_mass, visited, visits):
+    return [[math.sqrt(
+        sum([abs(r[i] - center_of_mass[i]) for r in visited], 0)/visits
+    )] for i in range(len(center_of_mass))]
 
 
 def main():
@@ -85,7 +86,7 @@ def main():
             % (config_file)
         )
 
-    texts = getTexts(
+    (artists, texts) = getTexts(
         num_artists=num_artists,
         artists_file=artists_file,
         data_file=data_file
@@ -96,12 +97,23 @@ def main():
         [
             getGeometricCentre(
                 model=model, text=corpus["lyrics"]
-            )for corpus in text["songs"]
-        ] for text in texts if text["artist"].lower() == "drake"
+            )for corpus in texts[a]["songs"]
+        ] for a in range(num_artists)
     ]
-    a = model.similar_by_vector(means[0][0], topn=1)
-    b = model.similar_by_vector(means[0][1], topn=1)
-    print(model.distance(a[0][0], b[0][0]))
+    centers = [
+        np.mean(means[n], axis=0) for n in range(num_artists)
+    ]
+    rogs = [
+        (
+            artists[i]["name"],
+            radiusOfGyration(
+                center_of_mass=centers[i],
+                visited=means[i],
+                visits=len(means[i])
+            )
+        ) for i in range(num_artists)
+    ]
+    print(rogs)
 
 
 if __name__ == "__main__":
