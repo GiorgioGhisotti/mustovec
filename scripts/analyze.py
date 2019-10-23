@@ -9,6 +9,11 @@ import logging
 import math
 import re
 
+logging.basicConfig(
+    format='%(asctime)s : %(levelname)s : %(message)s',
+    level=logging.INFO
+)
+
 
 def getCorpus(artist, data):
     corpus = []
@@ -37,7 +42,7 @@ def getTexts(num_artists, artists_file, data_file):
     with open(artists_file, "r") as af, open(data_file, "r") as df:
         artists = json.load(af)
         data = json.load(df)
-    for artist in artists[:num_artists]:
+    for artist in artists[:min(num_artists, len(artists))]:
         corpus = getCorpus(artist, data)
         texts.append(
             {
@@ -45,7 +50,7 @@ def getTexts(num_artists, artists_file, data_file):
                 "songs": corpus,
             }
         )
-    return (artists[:num_artists], texts)
+    return (artists[:min(num_artists, len(artists))], texts)
 
 
 def radiusOfGyration(center_of_mass, visited, visits):
@@ -54,41 +59,8 @@ def radiusOfGyration(center_of_mass, visited, visits):
     )] for i in range(len(center_of_mass))]
 
 
-def main():
-    logging.basicConfig(
-        format='%(asctime)s : %(levelname)s : %(message)s',
-        level=logging.INFO
-    )
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--model", help="Model file")
-    parser.add_argument("-a", "--artists", help="Artists file")
-    parser.add_argument("-n", "--num", help="Number of artists to consider")
-    parser.add_argument("-d", "--data", help="Data file")
-    parser.add_argument("-c", "--config", help="Config file")
-    parser.add_argument("-o", "--out", help="Output file")
-    args = parser.parse_args()
-
-    config = []
-    rogs_file = "./data/rogs.json"
-    model_file = "./en.model"
-    data_file = "./data/data.json"
-    artists_file = "./data/artists.json"
-    num_artists = 15
-    config_file = args.config if args.config else "./config.json"
-    try:
-        with open(config_file, "r") as cf:
-            config = json.load(cf)
-        rogs_file = args.out if args.out else config["rogs_file"]
-        model_file = args.model if args.model else config["model_file"]
-        data_file = args.data if args.data else config["data_file"]
-        artists_file = args.artists if args.artists else config["artists_file"]
-        num_artists = args.num if args.num else config["num_artists"]
-    except IOError:
-        print(
-            "Warning: Could not read %s."
-            % (config_file)
-        )
-
+def findRogs(model_file, artists_file, num_artists, data_file):
+    logging.info("Running Radius of Gyration analysis")
     (artists, texts) = getTexts(
         num_artists=num_artists,
         artists_file=artists_file,
@@ -101,23 +73,105 @@ def main():
             getGeometricCentre(
                 model=model, text=corpus["lyrics"]
             )for corpus in texts[a]["songs"]
-        ] for a in range(num_artists)
+        ] for a in range(min(num_artists, len(artists)))
     ]
     centers = [
-        np.mean(means[n], axis=0) for n in range(num_artists)
+        np.mean(means[n], axis=0) for n in range(
+            min(num_artists, len(artists))
+        )
     ]
-    rogs = [
-        (
-            artists[i]["name"],
-            radiusOfGyration(
+    return [
+        {
+            "name": artists[i]["name"],
+            "rogs": radiusOfGyration(
                 center_of_mass=centers[i],
                 visited=means[i],
                 visits=len(means[i])
             )
-        ) for i in range(num_artists)
+        } for i in range(min(num_artists, len(artists)))
     ]
-    with open(rogs_file, "w") as of:
-        json.dump(rogs, of)
+
+
+def averageRog(data_file):
+    logging.info("Running Radius of Gyration average analysis")
+    data = []
+    with open(data_file, "r") as df:
+        data = json.load(df)
+    return [
+        {
+            "name": artist["name"],
+            "average_rog": np.mean(artist["rogs"], axis=0)[0]
+        } for artist in data
+    ]
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-m", "--model", help="Model file")
+    parser.add_argument("-a", "--artists", help="Artists file")
+    parser.add_argument("-n", "--num", help="Number of artists to consider")
+    parser.add_argument("-d", "--data", help="Data file")
+    parser.add_argument("-c", "--config", help="Config file")
+    parser.add_argument("-o", "--out", help="Output file")
+    parser.add_argument("-p", "--plot", help="Plot results")
+    parser.add_argument(
+        "-t",
+        "--atype",
+        help="Analysis type (rog, avg_rog)"
+    )
+    args = parser.parse_args()
+
+    out_file = "./data/rogs.json"
+    model_file = "./en.model"
+    data_file = "./data/data.json"
+    artists_file = "./data/artists.json"
+    num_artists = 15
+    analysis_type = "rog"
+    config_file = args.config if args.config else "./config.json"
+    config = []
+    logging.info("Attempting to read configuration from %s..." % (config_file))
+    try:
+        with open(config_file, "r") as cf:
+            config = json.load(cf)
+        out_file = args.out if args.out else config["out_file"]
+        model_file = args.model if args.model else config["model_file"]
+        data_file = args.data if args.data else config["data_file"]
+        artists_file = args.artists if args.artists else config["artists_file"]
+        num_artists = args.num if args.num else config["num_artists"]
+        analysis_type = args.atype if args.atype else config["analysis_type"]
+        logging.info("Configuration read from %s" % (config_file))
+    except IOError:
+        logging.warning(
+            "Could not read %s"
+            % (config_file)
+        )
+
+    if analysis_type == "rog":
+        rogs = findRogs(model_file, artists_file, num_artists, data_file)
+        if not args.out:
+            if input(
+                "Write output of Radius of Gyration analysis to %s? [y/N]" %
+                (out_file)
+            ).lower() != "y":
+                return
+        logging.info("Writing Radius of Gyration data to %s..." % (out_file))
+        with open(out_file, "w") as of:
+            json.dump(rogs, of)
+            logging.info("Data written to %s" % (out_file))
+    elif analysis_type == "avg_rog":
+        avg_rogs = averageRog(data_file)
+        if not args.out:
+            if input(
+                "Write Radius of Gyration averages to %s? [y/N]" %
+                (out_file)
+            ).lower() != "y":
+                return
+        logging.info(
+            "Writing Radius of Gyration averages to %s..." % (out_file)
+        )
+        with open(out_file, "w") as of:
+            json.dump(avg_rogs, of)
+            logging.info("Data written to %s" % (out_file))
 
 
 if __name__ == "__main__":
