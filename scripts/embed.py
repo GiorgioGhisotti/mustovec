@@ -21,7 +21,7 @@ def embed(data_file, jobs):
                 Parallel(n_jobs=jobs, verbose=100)(
                     delayed(TSNE().fit_transform)(
                         np.array(v).reshape(-1, 1)
-                    ).tolist() for v in artist["vectors"]
+                    ) for v in artist["vectors"]
                 )
             ]
         } for artist in data
