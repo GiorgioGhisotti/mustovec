@@ -4,7 +4,6 @@ import json
 import argparse
 import numpy as np
 from sklearn.manifold import TSNE
-import matplotlib.pyplot as plt
 from joblib import Parallel, delayed
 
 
@@ -25,9 +24,7 @@ def embed(data_file, jobs):
             ]
         } for artist in data
     ]
-    _, axs = plt.subplots()
-    for artist in embedded_data:
-        axs.scatter(artist["vectors"])
+    return embedded_data
 
 
 def main():
