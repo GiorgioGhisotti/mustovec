@@ -105,6 +105,36 @@ def averageRog(data_file):
     ]
 
 
+def vectors(model_file, artists_file, num_artists, data_file):
+    logging.info("Running vector analysis")
+    (artists, texts) = getTexts(
+        num_artists=num_artists,
+        artists_file=artists_file,
+        data_file=data_file
+    )
+    # Load keyed wikipedia vector model
+    model = Word2Vec.load(model_file).wv
+    means = [
+        [
+            getGeometricCentre(
+                model=model, text=corpus["lyrics"]
+            )for corpus in text["songs"]
+        ] for text in texts
+    ]
+    centers = [
+        np.mean(means[n], axis=0) for n in range(
+            min(num_artists, len(artists))
+        )
+    ]
+    return [
+        {
+            "artist": artists[i]["name"],
+            "center": centers[i].tolist(),
+            "vectors": [(mean.tolist()) for mean in means[i]]
+        } for i in range(min(num_artists, len(artists)))
+    ]
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--model", help="Model file")
@@ -113,11 +143,10 @@ def main():
     parser.add_argument("-d", "--data", help="Data file")
     parser.add_argument("-c", "--config", help="Config file")
     parser.add_argument("-o", "--out", help="Output file")
-    parser.add_argument("-p", "--plot", help="Plot results")
     parser.add_argument(
         "-t",
         "--atype",
-        help="Analysis type (rog, avg_rog)"
+        help="Analysis type (rog, avg_rog, vectors)"
     )
     args = parser.parse_args()
 
@@ -171,6 +200,18 @@ def main():
         )
         with open(out_file, "w") as of:
             json.dump(avg_rogs, of)
+            logging.info("Data written to %s" % (out_file))
+    elif analysis_type == "vectors":
+        v = vectors(model_file, artists_file, num_artists, data_file)
+        if not args.out:
+            if input(
+                "Write output of vector analysis to %s? [y/N]" %
+                (out_file)
+            ).lower() != "y":
+                return
+        logging.info("Writing vector data to %s..." % (out_file))
+        with open(out_file, "w") as of:
+            json.dump(v, of)
             logging.info("Data written to %s" % (out_file))
 
 
