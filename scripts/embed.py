@@ -38,7 +38,7 @@ def main():
     jobs = int(args.jobs) if args.jobs and int(args.jobs) > 0 else 1
     output_file = args.output if args.output else "data/embedded_vectors.json"
     evs = embed(data_file, jobs)
-    with open(output_file, "r") as of:
+    with open(output_file, "w") as of:
         json.dump(evs, of)
 
 
