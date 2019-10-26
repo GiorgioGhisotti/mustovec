@@ -14,21 +14,30 @@ def embed(data_file, jobs):
     embedded_data = [
         {
             "name": artist["artist"],
-            "center": [
-                ar.tolist() for ar in TSNE().fit_transform(
-                    np.array(artist["center"]).reshape(-1, 1)
-                )
-            ],
+            "center": TSNE().fit_transform(
+                np.array(artist["center"]).reshape(-1, 1)
+            ),
             "vectors": [
                 Parallel(n_jobs=jobs, verbose=100)(
-                    [
-                        ar.tolist() for ar in delayed(TSNE().fit_transform)(
-                            np.array(v).reshape(-1, 1)
-                        )
-                    ] for v in artist["vectors"]
+                    delayed(TSNE().fit_transform)(
+                        np.array(v).reshape(-1, 1)
+                    ) for v in artist["vectors"]
                 )
             ]
         } for artist in data
+    ]
+    embedded_data = [
+        {
+            "name": ed["name"],
+            "center": [
+                ar.tolist() for ar in ed["center"]
+            ],
+            "vectors": [
+                [
+                    ar.tolist() for ar in v
+                ] for v in ed["vectors"]
+            ]
+        } for ed in embedded_data
     ]
     return embedded_data
 
