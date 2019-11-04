@@ -91,7 +91,7 @@ def get_lyrics(genius, artist, title):
         except Exception as e:
             print("%s, trying again..." % (e))
             time.sleep(1)
-    if lyrics_search is not None:
+    if type(lyrics_search) is not None:
         lyrics = re.sub(r"\[.*?\]", "", lyrics_search.lyrics.lower())
         return lyrics
     else:
@@ -175,7 +175,8 @@ def main():
         "JW59dXoj6pHvcaHKGyUTpPwOl2FNQNfYuwZXvVFyJv7xWjs48UEQMD0sWm2jnJkp"
     path = args.outputpath if args.outputpath else "data"
     date = datetime.datetime.strptime(
-        args.start, "%d-%m-%Y") if args.start else datetime.datetime(2019, 9, 7)
+        args.start, "%d-%m-%Y"
+    ) if args.start else datetime.datetime(2019, 9, 7)
     weeks = args.weeks if args.weeks else 520
 
     try:

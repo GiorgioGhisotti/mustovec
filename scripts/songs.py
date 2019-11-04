@@ -16,7 +16,8 @@ def main():
     parser.add_argument("-n", "--number", help="Set number of artists")
     args = parser.parse_args()
 
-    access_token = args.genius if args.genius else "JW59dXoj6pHvcaHKGyUTpPwOl2FNQNfYuwZXvVFyJv7xWjs48UEQMD0sWm2jnJkp"
+    access_token = args.genius if args.genius else \
+        "JW59dXoj6pHvcaHKGyUTpPwOl2FNQNfYuwZXvVFyJv7xWjs48UEQMD0sWm2jnJkp"
     path = args.output if args.output else "song_lyrics.json"
     data = args.data if args.data else "artists.json"
     num = int(args.number) if args.number else 15
@@ -40,7 +41,7 @@ def main():
     genius_artists = []
     for artist in top_artists[:num]:
         s = genius.search_artist(artist["name"], max_songs=10000)
-        while s != []:
+        while not s.isinstance(list) or s == []:
             s = genius.search_artist(artist["name"], max_songs=10000)
         genius_artists.append(s)
     genius.save_artists(artists=genius_artists, filename=path)
