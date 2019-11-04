@@ -40,10 +40,12 @@ def main():
 
     genius_artists = []
     for artist in top_artists[:num]:
-        s = genius.search_artist(artist["name"], max_songs=10000)
-        while not s.isinstance(list) or s == []:
-            s = genius.search_artist(artist["name"], max_songs=10000)
-        genius_artists.append(s)
+        try:
+            s = genius.search_artist("Lunapop", max_songs=10000)
+            print(type(s))
+            genius_artists.append(s)
+        except TypeError as te:
+            print(te)
     genius.save_artists(artists=genius_artists, filename=path)
 
 
