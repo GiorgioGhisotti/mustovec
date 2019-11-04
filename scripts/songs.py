@@ -40,7 +40,7 @@ def main():
     genius_artists = []
     for artist in top_artists[:num]:
         s = genius.search_artist(artist["name"], max_songs=10000)
-        while type(s) is not None:
+        while s != []:
             s = genius.search_artist(artist["name"], max_songs=10000)
         genius_artists.append(s)
     genius.save_artists(artists=genius_artists, filename=path)
