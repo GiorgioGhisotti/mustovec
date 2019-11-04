@@ -171,7 +171,8 @@ def main():
     parser.add_argument("-g", "--genius", help="Set genius access token")
     args = parser.parse_args()
 
-    access_token = args.genius if args.genius else "JW59dXoj6pHvcaHKGyUTpPwOl2FNQNfYuwZXvVFyJv7xWjs48UEQMD0sWm2jnJkp"
+    access_token = args.genius if args.genius else \
+        "JW59dXoj6pHvcaHKGyUTpPwOl2FNQNfYuwZXvVFyJv7xWjs48UEQMD0sWm2jnJkp"
     path = args.outputpath if args.outputpath else "data"
     date = datetime.datetime.strptime(
         args.start, "%d-%m-%Y") if args.start else datetime.datetime(2019, 9, 7)

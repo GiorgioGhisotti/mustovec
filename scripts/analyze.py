@@ -1,6 +1,7 @@
 #!/bin/python3
 
-import np
+import numpy as np
+import nltk
 from gensim.models import Word2Vec
 from gensim.models import KeyedVectors
 import argparse
@@ -15,16 +16,30 @@ logging.basicConfig(
 )
 
 
+def filterSong(song):
+    out = re.sub(
+        r"\.|\-|\(|\)|\–|\!|\?|\,", " ", song
+    )
+    tagged = nltk.pos_tag(nltk.word_tokenize(out))
+    discard_tags = [
+        "CC", "CD", "EX", "FW",
+        "IN", "LS", "MD", "PRP",
+        "PRP$", "TO", "UH", "SYM",
+        "WDT", "WP", "WP$", "WRB"
+    ]
+    out = " ".join(w[0] for w in tagged if w[1] not in discard_tags)
+    return out
+
+
 def getCorpus(artist, data):
     corpus = []
     for song in data:
-        if song["artist"].lower() == artist["name"].lower():
+        lyrics = filterSong(song["lyrics"])
+        if song["artist"].lower() == artist["name"].lower() and lyrics != []:
             corpus.append(
                 {
                     "title": song["title"],
-                    "lyrics": re.sub(
-                        r"\.|\-|\(|\)|\–|\!|\?|\,", " ", song["lyrics"]
-                    )
+                    "lyrics": lyrics
                 }
             )
     return corpus
@@ -44,12 +59,13 @@ def getTexts(num_artists, artists_file, data_file):
         data = json.load(df)
     for artist in artists[:min(num_artists, len(artists))]:
         corpus = getCorpus(artist, data)
-        texts.append(
-            {
-                "artist": artist["name"],
-                "songs": corpus,
-            }
-        )
+        if corpus != []:
+            texts.append(
+                {
+                    "artist": artist["name"],
+                    "songs": corpus,
+                }
+            )
     return (artists[:min(num_artists, len(artists))], texts)
 
 
