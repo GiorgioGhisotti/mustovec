@@ -43,22 +43,7 @@ def getCorpus(artist, data):
             }
         )(s) for s in data if s["artist"].lower() == artist["name"].lower()
     )
-#   corpus = []
-#   for song in data:
-#       lyrics = filterSong(song["lyrics"])
-#       if song["artist"].lower() == artist["name"].lower() and lyrics != []:
-#           corpus.append(
-#               {
-#                   "title": song["title"],
-#                   "lyrics": lyrics
-#               }
-#           )
     return corpus
-
-
-def getGeometricCentre(model: KeyedVectors, text):
-    doc = [word for word in text if word in model.vocab]
-    return np.mean(model[doc], axis=0)
 
 
 def getTexts(num_artists, artists_file, data_file):
@@ -80,14 +65,19 @@ def getTexts(num_artists, artists_file, data_file):
     return (artists[:min(num_artists, len(artists))], texts)
 
 
+def getGeometricCentre(model: KeyedVectors, text):
+    doc = [word for word in text if word in model.vocab]
+    return np.mean(model[doc], axis=0)
+
+
 def radiusOfGyration(center_of_mass, visited, visits):
     return [[math.sqrt(
         sum([abs(r[i] - center_of_mass[i]) for r in visited], 0)/visits
     )] for i in range(len(center_of_mass))]
 
 
-def findRogs(model_file, artists_file, num_artists, data_file):
-    logging.info("Running Radius of Gyration analysis")
+def findVectors(model_file, artists_file, num_artists, data_file):
+    logging.info("Extracting vectors")
     (artists, texts) = getTexts(
         num_artists=num_artists,
         artists_file=artists_file,
@@ -101,61 +91,10 @@ def findRogs(model_file, artists_file, num_artists, data_file):
         [
             getGeometricCentre(
                 model=model, text=corpus["lyrics"]
-            )for corpus in texts[a]["songs"]
-        ] for a in range(min(num_artists, len(artists)))
-    ]
-    logging.info("Working out centers")
-    centers = [
-        np.mean(means[n], axis=0) for n in range(
-            min(num_artists, len(artists))
-        )
-    ]
-    all_means = []
-    for mean in means:
-        for m in mean:
-            all_means.append(m)
-    logging.info("Working out rogs")
-    return [
-        {
-            "name": artists[i]["name"],
-            "rogs": radiusOfGyration(
-                center_of_mass=centers[i],
-                visited=all_means,
-                visits=len(all_means)
-            )
-        } for i in range(min(num_artists, len(artists)))
-    ]
-
-
-def averageRog(data_file):
-    logging.info("Running Radius of Gyration average analysis")
-    data = []
-    with open(data_file, "r") as df:
-        data = json.load(df)
-    return [
-        {
-            "name": artist["name"],
-            "average_rog": np.mean(artist["rogs"], axis=0)[0]
-        } for artist in data
-    ]
-
-
-def vectors(model_file, artists_file, num_artists, data_file):
-    logging.info("Running vector analysis")
-    (artists, texts) = getTexts(
-        num_artists=num_artists,
-        artists_file=artists_file,
-        data_file=data_file
-    )
-    # Load keyed wikipedia vector model
-    model = Word2Vec.load(model_file).wv
-    means = [
-        [
-            getGeometricCentre(
-                model=model, text=corpus["lyrics"]
             )for corpus in text["songs"]
         ] for text in texts
     ]
+    logging.info("Working out centers")
     centers = [
         np.mean(means[n], axis=0) for n in range(
             min(num_artists, len(artists))
@@ -170,8 +109,63 @@ def vectors(model_file, artists_file, num_artists, data_file):
     ]
 
 
+def findRogs(vectors):
+    logging.info("Running Radius of Gyration analysis")
+    all_means = []
+    for mean in vectors:
+        for m in mean["vectors"]:
+            all_means.append(m)
+    logging.info("Working out rogs")
+    return [
+        {
+            "name": vectors[i]["artist"],
+            "rogs": radiusOfGyration(
+                center_of_mass=vectors[i]["center"],
+                visited=all_means,
+                visits=len(all_means)
+            )
+        } for i in range(len(vectors))
+    ]
+
+
+def averageRog(rogs):
+    logging.info("Running Radius of Gyration average analysis")
+    return [
+        {
+            "name": artist["name"],
+            "average_rog": np.mean(artist["rogs"], axis=0)[0]
+        } for artist in rogs
+    ]
+
+
+def writeToOut(out_file, data):
+    if not out_file:
+        out_file = input("Output file: ")
+    confirm = input(
+        "Data will be written to %s. Confirm? [y/N/cancel] " %
+        (out_file)
+    ).lower()
+    while confirm != "y":
+        if confirm == "cancel":
+            logging.warning("Aborting operation. No data was written to file.")
+            return
+        out_file = input("Output file: ")
+        confirm = input(
+            "Data will be written to %s. Confirm? [y/N/cancel] " %
+            (out_file)
+        ).lower()
+    with open(out_file, "w") as of:
+        logging.info(
+            "Writing Radius of Gyration averages to %s..." % (out_file)
+        )
+        json.dump(data, of)
+    logging.info("Data written to %s" % (out_file))
+
+
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Analyze dataset"
+    )
     parser.add_argument("-m", "--model", help="Model file")
     parser.add_argument("-a", "--artists", help="Artists file")
     parser.add_argument("-n", "--num", help="Number of artists to consider")
@@ -181,11 +175,11 @@ def main():
     parser.add_argument(
         "-t",
         "--atype",
-        help="Analysis type (rog, avg_rog, vectors)"
+        help="Analysis type " +
+        "(full, vectors, rog, avg_rog, vectors+rog, rog+avg_rogs)"
     )
     args = parser.parse_args()
 
-    out_file = "./data/rogs.json"
     model_file = "./en.model"
     data_file = "./data/data.json"
     artists_file = "./data/artists.json"
@@ -210,44 +204,39 @@ def main():
             % (config_file)
         )
 
-    if analysis_type == "rog":
-        rogs = findRogs(model_file, artists_file, num_artists, data_file)
-        if not args.out:
-            if input(
-                "Write output of Radius of Gyration analysis to %s? [y/N]" %
-                (out_file)
-            ).lower() != "y":
-                return
-        logging.info("Writing Radius of Gyration data to %s..." % (out_file))
-        with open(out_file, "w") as of:
-            json.dump(rogs, of)
-            logging.info("Data written to %s" % (out_file))
-    elif analysis_type == "avg_rog":
-        avg_rogs = averageRog(data_file)
-        if not args.out:
-            if input(
-                "Write Radius of Gyration averages to %s? [y/N]" %
-                (out_file)
-            ).lower() != "y":
-                return
-        logging.info(
-            "Writing Radius of Gyration averages to %s..." % (out_file)
-        )
-        with open(out_file, "w") as of:
-            json.dump(avg_rogs, of)
-            logging.info("Data written to %s" % (out_file))
+    if analysis_type == "full":
+        vectors = findVectors(model_file, artists_file, num_artists, data_file)
+        rogs = findRogs(vectors)
+        avg_rogs = averageRog(rogs)
+        writeToOut(args.out, avg_rogs)
+    elif analysis_type == "vectors+rogs":
+        vectors = findVectors(model_file, artists_file, num_artists, data_file)
+        rogs = findRogs(vectors)
+        writeToOut(args.out, rogs)
+    elif analysis_type == "rogs+avg_rogs":
+        vectors = []
+        with open(data_file, "r") as v:
+            vectors = json.load(v)
+        rogs = findRogs(vectors)
+        avg_rogs = averageRog(rogs)
+        writeToOut(args.out, avg_rogs)
     elif analysis_type == "vectors":
-        v = vectors(model_file, artists_file, num_artists, data_file)
-        if not args.out:
-            if input(
-                "Write output of vector analysis to %s? [y/N]" %
-                (out_file)
-            ).lower() != "y":
-                return
-        logging.info("Writing vector data to %s..." % (out_file))
-        with open(out_file, "w") as of:
-            json.dump(v, of)
-            logging.info("Data written to %s" % (out_file))
+        v = findVectors(model_file, artists_file, num_artists, data_file)
+        writeToOut(args.out, v)
+    elif analysis_type == "rog":
+        vectors = []
+        with open(data_file, "r") as v:
+            vectors = json.load(v)
+        rogs = findRogs(vectors)
+        writeToOut(args.out, rogs)
+    elif analysis_type == "avg_rog":
+        rogs = []
+        with open(data_file, "r") as df:
+            rogs = json.load(df)
+        avg_rogs = averageRog(rogs)
+        writeToOut(args.out, avg_rogs)
+    else:
+        logging.error("Invalid analysis type: %s" % (analysis_type))
 
 
 if __name__ == "__main__":
