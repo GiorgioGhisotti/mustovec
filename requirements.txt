@@ -1,0 +1,8 @@
+gensim
+numpy
+nltk
+joblib
+matplotlib
+beautifulsoup4
+lyricsgenius
+scikit_learn
