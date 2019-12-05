@@ -9,6 +9,8 @@ import json
 import logging
 import math
 import re
+from joblib import Parallel, delayed
+import multiprocessing
 
 logging.basicConfig(
     format='%(asctime)s : %(levelname)s : %(message)s',
@@ -32,16 +34,25 @@ def filterSong(song):
 
 
 def getCorpus(artist, data):
-    corpus = []
-    for song in data:
-        lyrics = filterSong(song["lyrics"])
-        if song["artist"].lower() == artist["name"].lower() and lyrics != []:
-            corpus.append(
-                {
-                    "title": song["title"],
-                    "lyrics": lyrics
-                }
-            )
+    logging.info("Getting corpus for artist %s" % (artist["name"]))
+    corpus = Parallel(verbose=100, n_jobs=multiprocessing.cpu_count())(
+        delayed(
+            lambda song : {
+                "title": s["title"].lower(),
+                "lyrics": filterSong(s["lyrics"])
+            }
+        )(s) for s in data if s["artist"].lower() == artist["name"].lower()
+    )
+#   corpus = []
+#   for song in data:
+#       lyrics = filterSong(song["lyrics"])
+#       if song["artist"].lower() == artist["name"].lower() and lyrics != []:
+#           corpus.append(
+#               {
+#                   "title": song["title"],
+#                   "lyrics": lyrics
+#               }
+#           )
     return corpus
 
 
@@ -83,7 +94,9 @@ def findRogs(model_file, artists_file, num_artists, data_file):
         data_file=data_file
     )
     # Load keyed wikipedia vector model
+    logging.info("Loading vectors")
     model = Word2Vec.load(model_file).wv
+    logging.info("Working out means")
     means = [
         [
             getGeometricCentre(
@@ -91,18 +104,24 @@ def findRogs(model_file, artists_file, num_artists, data_file):
             )for corpus in texts[a]["songs"]
         ] for a in range(min(num_artists, len(artists)))
     ]
+    logging.info("Working out centers")
     centers = [
         np.mean(means[n], axis=0) for n in range(
             min(num_artists, len(artists))
         )
     ]
+    all_means = []
+    for mean in means:
+        for m in mean:
+            all_means.append(m)
+    logging.info("Working out rogs")
     return [
         {
             "name": artists[i]["name"],
             "rogs": radiusOfGyration(
                 center_of_mass=centers[i],
-                visited=means[i],
-                visits=len(means[i])
+                visited=all_means,
+                visits=len(all_means)
             )
         } for i in range(min(num_artists, len(artists)))
     ]
