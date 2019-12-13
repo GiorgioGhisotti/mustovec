@@ -71,9 +71,20 @@ def getGeometricCentre(model: KeyedVectors, text):
 
 
 def radiusOfGyration(center_of_mass, visited, visits):
-    return [[math.sqrt(
-        sum([abs(r[i] - center_of_mass[i]) for r in visited], 0)/visits
-    )] for i in range(len(center_of_mass))]
+    return [
+        np.sqrt(
+            np.divide(
+                np.sum(
+                    [
+                        np.square(
+                            np.subtract(ri, center_of_mass)
+                        ) for ri in r
+                    ], 0
+                ),
+                visits
+            )
+        ).tolist() for r in visited
+    ]
 
 
 def findVectors(model_file, artists_file, num_artists, data_file):
@@ -111,29 +122,26 @@ def findVectors(model_file, artists_file, num_artists, data_file):
 
 def findRogs(vectors):
     logging.info("Running Radius of Gyration analysis")
-    all_means = []
-    for mean in vectors:
-        for m in mean["vectors"]:
-            all_means.append(m)
-    logging.info("Working out rogs")
-    return [
-        {
-            "name": vectors[i]["artist"],
-            "rogs": radiusOfGyration(
-                center_of_mass=vectors[i]["center"],
-                visited=all_means,
-                visits=len(all_means)
-            )
-        } for i in range(len(vectors))
-    ]
-
+    rogs = Parallel(verbose=100, n_jobs=multiprocessing.cpu_count())(
+        delayed(
+            lambda i : {
+                "name": vectors[i]["artist"],
+                "rogs": radiusOfGyration(
+                    center_of_mass=vectors[i]["center"],
+                    visited=vectors[i]["vectors"],
+                    visits=1
+                )
+            }
+        )(i) for i in range(len(vectors))
+    )
+    return rogs
 
 def averageRog(rogs):
     logging.info("Running Radius of Gyration average analysis")
     return [
         {
             "name": artist["name"],
-            "average_rog": np.mean(artist["rogs"], axis=0)[0]
+            "average_rog": np.mean(artist["rogs"], axis=0).tolist()
         } for artist in rogs
     ]
 
@@ -176,7 +184,7 @@ def main():
         "-t",
         "--atype",
         help="Analysis type " +
-        "(full, vectors, rog, avg_rog, vectors+rog, rog+avg_rogs)"
+        "(full, vectors, rog, avg_rog, vectors+rog, rog+avg_rog)"
     )
     args = parser.parse_args()
 
@@ -209,11 +217,11 @@ def main():
         rogs = findRogs(vectors)
         avg_rogs = averageRog(rogs)
         writeToOut(args.out, avg_rogs)
-    elif analysis_type == "vectors+rogs":
+    elif analysis_type == "vectors+rog":
         vectors = findVectors(model_file, artists_file, num_artists, data_file)
         rogs = findRogs(vectors)
         writeToOut(args.out, rogs)
-    elif analysis_type == "rogs+avg_rogs":
+    elif analysis_type == "rogs+avg_rog":
         vectors = []
         with open(data_file, "r") as v:
             vectors = json.load(v)

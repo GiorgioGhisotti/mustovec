@@ -24,6 +24,7 @@ def main():
 
     try:
         genius = lyricsgenius.Genius(access_token)
+        genius.timeout = 1000000
     except Exception as e:
         print("%s, could not sign in to Genius." % (e))
         sys.exit(1)
@@ -40,12 +41,13 @@ def main():
 
     genius_artists = []
     for artist in top_artists[:num]:
-        try:
-            s = genius.search_artist("Lunapop", max_songs=10000)
-            print(type(s))
-            genius_artists.append(s)
-        except TypeError as te:
-            print(te)
+        while True:
+            try:
+                s = genius.search_artist(artist["name"], max_songs=10000)
+                genius_artists.append(s)
+                break
+            except:
+                pass
     genius.save_artists(artists=genius_artists, filename=path)
 
 
