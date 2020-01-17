@@ -19,6 +19,10 @@ logging.basicConfig(
 
 
 def filterSong(song):
+    '''
+    Filters out unwanted words (e.g. anything that isn't English,
+    articles, etc.)
+    '''
     out = re.sub(
         r"\.|\-|\(|\)|\–|\!|\?|\,", " ", song
     )
@@ -47,6 +51,9 @@ def getCorpus(artist, data):
 
 
 def getTexts(num_artists, artists_file, data_file):
+    '''
+    Formats song data in a way that can be better processed
+    '''
     artists = []
     data = []
     texts = []
@@ -72,22 +79,26 @@ def getGeometricCentre(model: KeyedVectors, text):
 
 def radiusOfGyration(center_of_mass, visited, visits):
     return [
-        np.sqrt(
-            np.divide(
-                np.sum(
+        [
+            math.sqrt(
+                sum(
                     [
-                        np.square(
-                            np.subtract(ri, center_of_mass)
-                        ) for ri in r
-                    ], 0
-                ),
-                visits
+                        abs(
+                            r[i] - center_of_mass[i]
+                        ) for i in range(len(center_of_mass))
+                    ],
+                    0
+                )/visits
             )
-        ).tolist() for r in visited
+        ] for r in visited
     ]
 
 
 def findVectors(model_file, artists_file, num_artists, data_file):
+    '''
+    Works out the geometric center of each artist as well as the mean
+    vector means of each song
+    '''
     logging.info("Extracting vectors")
     (artists, texts) = getTexts(
         num_artists=num_artists,
@@ -147,6 +158,9 @@ def averageRog(rogs):
 
 
 def writeToOut(out_file, data):
+    '''
+    Support function for file output
+    '''
     if not out_file:
         out_file = input("Output file: ")
     confirm = input(
@@ -221,7 +235,7 @@ def main():
         vectors = findVectors(model_file, artists_file, num_artists, data_file)
         rogs = findRogs(vectors)
         writeToOut(args.out, rogs)
-    elif analysis_type == "rogs+avg_rog":
+    elif analysis_type == "rog+avg_rog":
         vectors = []
         with open(data_file, "r") as v:
             vectors = json.load(v)
