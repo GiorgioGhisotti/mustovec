@@ -39,13 +39,19 @@ def filterSong(song):
 
 def getCorpus(artist, data):
     logging.info("Getting corpus for artist %s" % (artist["name"]))
-    corpus = Parallel(verbose=100, n_jobs=multiprocessing.cpu_count())(
+    corpus = Parallel(
+        verbose=100, n_jobs=multiprocessing.cpu_count(), prefer="threads"
+    )(
         delayed(
             lambda song : {
                 "title": s["title"].lower(),
                 "lyrics": filterSong(s["lyrics"])
             }
-        )(s) for s in data if s["artist"].lower() == artist["name"].lower()
+        )(s) for s in data if (
+            s["artist"].lower() == artist["name"].lower() and len(
+                filterSong(s["lyrics"])
+            ) > 0
+        )
     )
     return corpus
 
@@ -69,11 +75,13 @@ def getTexts(num_artists, artists_file, data_file):
                     "songs": corpus,
                 }
             )
-    return (artists[:min(num_artists, len(artists))], texts)
+    return (artists[:len(texts)], texts)
 
 
 def getGeometricCentre(model: KeyedVectors, text):
     doc = [word for word in text if word in model.vocab]
+    if len(doc) == 0:
+        return -1 * np.ones(len(model["hello"]))
     return np.mean(model[doc], axis=0)
 
 
@@ -99,6 +107,8 @@ def findVectors(model_file, artists_file, num_artists, data_file):
     Works out the geometric center of each artist as well as the mean
     vector means of each song
     '''
+    nltk.download("punkt")
+    nltk.download("averaged_perceptron_tagger")
     logging.info("Extracting vectors")
     (artists, texts) = getTexts(
         num_artists=num_artists,
@@ -118,22 +128,22 @@ def findVectors(model_file, artists_file, num_artists, data_file):
     ]
     logging.info("Working out centers")
     centers = [
-        np.mean(means[n], axis=0) for n in range(
-            min(num_artists, len(artists))
-        )
+        np.mean(m, axis=0) for m in means
     ]
     return [
         {
             "artist": artists[i]["name"],
             "center": centers[i].tolist(),
-            "vectors": [(mean.tolist()) for mean in means[i]]
+            "vectors": [m.tolist() for m in means[i]]
         } for i in range(min(num_artists, len(artists)))
     ]
 
 
 def findRogs(vectors):
     logging.info("Running Radius of Gyration analysis")
-    rogs = Parallel(verbose=100, n_jobs=multiprocessing.cpu_count())(
+    rogs = Parallel(
+        verbose=100, n_jobs=multiprocessing.cpu_count(), prefer="threads"
+    )(
         delayed(
             lambda i : {
                 "name": vectors[i]["artist"],
@@ -178,7 +188,7 @@ def writeToOut(out_file, data):
         ).lower()
     with open(out_file, "w") as of:
         logging.info(
-            "Writing Radius of Gyration averages to %s..." % (out_file)
+            "Writing data to %s..." % (out_file)
         )
         json.dump(data, of)
     logging.info("Data written to %s" % (out_file))
@@ -217,7 +227,7 @@ def main():
         model_file = args.model if args.model else config["model_file"]
         data_file = args.data if args.data else config["data_file"]
         artists_file = args.artists if args.artists else config["artists_file"]
-        num_artists = args.num if args.num else config["num_artists"]
+        num_artists = int(args.num) if args.num else config["num_artists"]
         analysis_type = args.atype if args.atype else config["analysis_type"]
         logging.info("Configuration read from %s" % (config_file))
     except IOError:
