@@ -1,4 +1,4 @@
-#!/bin/python3
+#!python3
 # Get all songs from given artists
 
 import argparse
