@@ -15,9 +15,9 @@ def main():
     out = args.output if args.output else "lyrics.json"
     data = []
     for json_file in os.listdir(path=path):
-        with open(json_file, "r") as lf:
+        with open(path + json_file, "r") as lf:
             raw = json.load(lf)
-            print(json_file)
+            print(path + json_file)
             songs = raw["songs"]
             artist = raw["name"]
             for lyrics in songs:
