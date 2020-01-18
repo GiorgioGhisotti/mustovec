@@ -3,6 +3,7 @@
 import json
 import os
 import re
+import argparse
 
 
 def main():
@@ -37,7 +38,7 @@ def main():
                         "lyrics": lyrics["lyrics"]
                     }
                 data.append(lyrics_new)
-    with open("lyrics.json", "w") as of:
+    with open(out, "w") as of:
         json.dump(data, of)
 
 
