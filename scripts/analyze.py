@@ -38,22 +38,15 @@ def filterSong(song):
 
 
 def getCorpus(artist, data):
-    logging.info("Getting corpus for artist %s" % (artist["name"]))
-    corpus = Parallel(
-        verbose=100, n_jobs=multiprocessing.cpu_count(), prefer="threads"
-    )(
-        delayed(
-            lambda song : {
-                "title": s["title"].lower(),
-                "lyrics": filterSong(s["lyrics"])
-            }
-        )(s) for s in data if (
-            s["artist"].lower() == artist["name"].lower() and len(
-                filterSong(s["lyrics"])
-            ) > 0
-        )
-    )
-    return corpus
+    corpus = []
+    for s in data:
+        if s["artist"].lower() == artist["name"].lower():
+            if len(filterSong(s["lyrics"])) > 0:
+                corpus.append({
+                    "title": s["title"].lower(),
+                    "lyrics": filterSong(s["lyrics"])
+                })
+    return (artist, corpus)
 
 
 def getTexts(num_artists, artists_file, data_file):
@@ -66,8 +59,15 @@ def getTexts(num_artists, artists_file, data_file):
     with open(artists_file, "r") as af, open(data_file, "r") as df:
         artists = json.load(af)
         data = json.load(df)
-    for artist in artists[:min(num_artists, len(artists))]:
-        corpus = getCorpus(artist, data)
+    corpora = Parallel(
+        verbose=100, n_jobs=multiprocessing.cpu_count()
+    )(
+        delayed(getCorpus)(
+            artist,
+            data
+        ) for artist in artists[:min(num_artists, len(artists))]
+    )
+    for (artist, corpus) in corpora:
         if corpus != []:
             texts.append(
                 {
@@ -75,11 +75,11 @@ def getTexts(num_artists, artists_file, data_file):
                     "songs": corpus,
                 }
             )
-    return (artists[:len(texts)], texts)
+    return texts
 
 
 def getGeometricCentre(model: KeyedVectors, text):
-    doc = [word for word in text if word in model.vocab]
+    doc = [word for word in text.split(" ") if word in model.vocab]
     if len(doc) == 0:
         return -1 * np.ones(len(model["hello"]))
     return np.mean(model[doc], axis=0)
@@ -102,19 +102,27 @@ def radiusOfGyration(center_of_mass, visited, visits):
     ]
 
 
+def findCorpora(model_file, artists_file, num_artists, data_file):
+    nltk.download("punkt")
+    nltk.download("averaged_perceptron_tagger")
+    logging.info("Extracting vectors")
+    return getTexts(
+        num_artists=num_artists,
+        artists_file=artists_file,
+        data_file=data_file
+    )
+
+
 def findVectors(model_file, artists_file, num_artists, data_file):
     '''
     Works out the geometric center of each artist as well as the mean
     vector means of each song
     '''
-    nltk.download("punkt")
-    nltk.download("averaged_perceptron_tagger")
-    logging.info("Extracting vectors")
-    (artists, texts) = getTexts(
-        num_artists=num_artists,
-        artists_file=artists_file,
-        data_file=data_file
-    )
+    artists = []
+    texts = []
+    with open(artists_file, "r") as af, open(data_file, "r") as df:
+        texts = json.load(df)
+        artists = json.load(af)[:len(texts)]
     # Load keyed wikipedia vector model
     logging.info("Loading vectors")
     model = Word2Vec.load(model_file).wv
@@ -208,7 +216,7 @@ def main():
         "-t",
         "--atype",
         help="Analysis type " +
-        "(full, vectors, rog, avg_rog, vectors+rog, rog+avg_rog)"
+        "(corpora, vectors, rogs, avg_rogs)"
     )
     args = parser.parse_args()
 
@@ -236,32 +244,19 @@ def main():
             % (config_file)
         )
 
-    if analysis_type == "full":
-        vectors = findVectors(model_file, artists_file, num_artists, data_file)
-        rogs = findRogs(vectors)
-        avg_rogs = averageRog(rogs)
-        writeToOut(args.out, avg_rogs)
-    elif analysis_type == "vectors+rog":
-        vectors = findVectors(model_file, artists_file, num_artists, data_file)
-        rogs = findRogs(vectors)
-        writeToOut(args.out, rogs)
-    elif analysis_type == "rog+avg_rog":
-        vectors = []
-        with open(data_file, "r") as v:
-            vectors = json.load(v)
-        rogs = findRogs(vectors)
-        avg_rogs = averageRog(rogs)
-        writeToOut(args.out, avg_rogs)
+    if analysis_type == "corpora":
+        corpora = findCorpora(model_file, artists_file, num_artists, data_file)
+        writeToOut(args.out, corpora)
     elif analysis_type == "vectors":
         v = findVectors(model_file, artists_file, num_artists, data_file)
         writeToOut(args.out, v)
-    elif analysis_type == "rog":
+    elif analysis_type == "rogs":
         vectors = []
         with open(data_file, "r") as v:
             vectors = json.load(v)
         rogs = findRogs(vectors)
         writeToOut(args.out, rogs)
-    elif analysis_type == "avg_rog":
+    elif analysis_type == "avg_rogs":
         rogs = []
         with open(data_file, "r") as df:
             rogs = json.load(df)
