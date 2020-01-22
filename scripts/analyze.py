@@ -149,11 +149,11 @@ def findVectors(model_file, artists_file, num_artists, data_file):
 
 def findRogs(vectors):
     logging.info("Running Radius of Gyration analysis")
-    rogs = Parallel(
+    return Parallel(
         verbose=100, n_jobs=multiprocessing.cpu_count(), prefer="threads"
     )(
         delayed(
-            lambda i : {
+            lambda i: {
                 "name": vectors[i]["artist"],
                 "rogs": radiusOfGyration(
                     center_of_mass=vectors[i]["center"],
@@ -163,7 +163,28 @@ def findRogs(vectors):
             }
         )(i) for i in range(len(vectors))
     )
-    return rogs
+
+
+def findOverallRogs(vectors):
+    logging.info("Running overall Radius of Gyration analysis")
+    overall_center = np.mean(
+        [v["center"] for v in vectors], axis=0
+    )
+    return Parallel(
+        verbose=100, n_jobs=multiprocessing.cpu_count(), prefer="threads"
+    )(
+        delayed(
+            lambda i: {
+                "name": vectors[i]["artist"],
+                "rogs": radiusOfGyration(
+                    center_of_mass=overall_center,
+                    visited=vectors[i]["vectors"],
+                    visits=1
+                )
+            }
+        )(i) for i in range(len(vectors))
+    )
+
 
 def averageRog(rogs):
     logging.info("Running Radius of Gyration average analysis")
@@ -216,7 +237,7 @@ def main():
         "-t",
         "--atype",
         help="Analysis type " +
-        "(corpora, vectors, rogs, avg_rogs)"
+        "(corpora, vectors, rogs, overall_rogs, avg_rogs)"
     )
     args = parser.parse_args()
 
@@ -231,7 +252,6 @@ def main():
     try:
         with open(config_file, "r") as cf:
             config = json.load(cf)
-        out_file = args.out if args.out else config["out_file"]
         model_file = args.model if args.model else config["model_file"]
         data_file = args.data if args.data else config["data_file"]
         artists_file = args.artists if args.artists else config["artists_file"]
@@ -255,6 +275,12 @@ def main():
         with open(data_file, "r") as v:
             vectors = json.load(v)
         rogs = findRogs(vectors)
+        writeToOut(args.out, rogs)
+    elif analysis_type == "overall_rogs":
+        vectors = []
+        with open(data_file, "r") as v:
+            vectors = json.load(v)
+        rogs = findOverallRogs(vectors)
         writeToOut(args.out, rogs)
     elif analysis_type == "avg_rogs":
         rogs = []
