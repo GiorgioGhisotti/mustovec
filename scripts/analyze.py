@@ -85,7 +85,7 @@ def getGeometricCentre(model: KeyedVectors, text):
     return np.mean(model[doc], axis=0)
 
 
-def radiusOfGyration(center_of_mass, visited, visits):
+def standardDeviation(center_of_mass, visited, visits):
     return [
         [
             math.sqrt(
@@ -147,15 +147,15 @@ def findVectors(model_file, artists_file, num_artists, data_file):
     ]
 
 
-def findRogs(vectors):
-    logging.info("Running Radius of Gyration analysis")
+def findDeviation(vectors):
+    logging.info("Running standard deviation analysis")
     return Parallel(
         verbose=100, n_jobs=multiprocessing.cpu_count(), prefer="threads"
     )(
         delayed(
             lambda i: {
                 "name": vectors[i]["artist"],
-                "rogs": radiusOfGyration(
+                "deviations": standardDeviation(
                     center_of_mass=vectors[i]["center"],
                     visited=vectors[i]["vectors"],
                     visits=1
@@ -165,8 +165,8 @@ def findRogs(vectors):
     )
 
 
-def findOverallRogs(vectors):
-    logging.info("Running overall Radius of Gyration analysis")
+def findOverallDeviation(vectors):
+    logging.info("Running overall deviation analysis")
     overall_center = np.mean(
         [v["center"] for v in vectors], axis=0
     )
@@ -176,7 +176,7 @@ def findOverallRogs(vectors):
         delayed(
             lambda i: {
                 "name": vectors[i]["artist"],
-                "rogs": radiusOfGyration(
+                "deviations": standardDeviation(
                     center_of_mass=overall_center,
                     visited=vectors[i]["vectors"],
                     visits=1
@@ -186,13 +186,13 @@ def findOverallRogs(vectors):
     )
 
 
-def averageRog(rogs):
-    logging.info("Running Radius of Gyration average analysis")
+def averageDeviation(deviations):
+    logging.info("Running average deviation analysis")
     return [
         {
             "name": artist["name"],
-            "average_rog": np.mean(artist["rogs"], axis=0).tolist()
-        } for artist in rogs
+            "average_deviation": np.mean(artist["deviations"], axis=0).tolist()
+        } for artist in deviations
     ]
 
 
@@ -237,15 +237,15 @@ def main():
         "-t",
         "--atype",
         help="Analysis type " +
-        "(corpora, vectors, rogs, overall_rogs, avg_rogs)"
+        "(corpora, vectors, deviations, overall_deviations, avg_deviations)"
     )
     args = parser.parse_args()
 
-    model_file = "./en.model"
-    data_file = "./data/data.json"
-    artists_file = "./data/artists.json"
-    num_artists = 15
-    analysis_type = "rog"
+    model_file = args.model if args.model else "./en.model"
+    data_file = args.data if args.data else "./data/data.json"
+    artists_file = args.artists if args.artists else "./data/artists.json"
+    num_artists = int(args.num) if args.num else 15
+    analysis_type = args.atype if args.atype else "deviations"
     config_file = args.config if args.config else "./config.json"
     config = []
     logging.info("Attempting to read configuration from %s..." % (config_file))
@@ -270,24 +270,24 @@ def main():
     elif analysis_type == "vectors":
         v = findVectors(model_file, artists_file, num_artists, data_file)
         writeToOut(args.out, v)
-    elif analysis_type == "rogs":
+    elif analysis_type == "deviations":
         vectors = []
         with open(data_file, "r") as v:
             vectors = json.load(v)
-        rogs = findRogs(vectors)
-        writeToOut(args.out, rogs)
-    elif analysis_type == "overall_rogs":
+        deviations = findDeviation(vectors)
+        writeToOut(args.out, deviations)
+    elif analysis_type == "overall_deviations":
         vectors = []
         with open(data_file, "r") as v:
             vectors = json.load(v)
-        rogs = findOverallRogs(vectors)
-        writeToOut(args.out, rogs)
-    elif analysis_type == "avg_rogs":
-        rogs = []
+        deviations = findOverallDeviation(vectors)
+        writeToOut(args.out, deviations)
+    elif analysis_type == "avg_deviations":
+        deviations = []
         with open(data_file, "r") as df:
-            rogs = json.load(df)
-        avg_rogs = averageRog(rogs)
-        writeToOut(args.out, avg_rogs)
+            deviations = json.load(df)
+        avg_deviations = averageDeviation(deviations)
+        writeToOut(args.out, avg_deviations)
     else:
         logging.error("Invalid analysis type: %s" % (analysis_type))
 
