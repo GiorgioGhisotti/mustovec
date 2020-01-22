@@ -8,10 +8,10 @@ import argparse
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-p", "--path", help="Output of scrape script path")
+    parser.add_argument("-d", "--d", help="Data file")
     parser.add_argument("-o", "--output", help="Output file")
     args = parser.parse_args()
-    path = args.path if args.path else "data/data.json"
+    data = args.data if args.data else "data/data.json"
     out = args.output if args.output else "raw_lyrics.json"
     data = []
     with open(path, "r") as lf:

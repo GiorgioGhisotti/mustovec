@@ -18,7 +18,7 @@ def main():
 
     access_token = args.genius if args.genius else \
         "JW59dXoj6pHvcaHKGyUTpPwOl2FNQNfYuwZXvVFyJv7xWjs48UEQMD0sWm2jnJkp"
-    path = args.output if args.output else "song_lyrics.json"
+    path = args.output if args.output else "song_lyrics"
     data = args.data if args.data else "artists.json"
     num = int(args.number) if args.number else 15
 
